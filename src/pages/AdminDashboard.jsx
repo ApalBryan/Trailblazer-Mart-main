@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase";
-import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc // ✅ NEW
+} from "firebase/firestore";
 
 function AdminDashboard() {
   const { currentUser, isAdmin } = useAuth();
@@ -67,14 +73,36 @@ function AdminDashboard() {
     fetchStats();
   }, []);
 
-  // 🔥 TOGGLE STOCK (AUTO SET STOCK TO 0 IF OUT)
+  // 🔥 DELETE PRODUCT
+  const removeProduct = async (id) => {
+    const confirmDelete = window.confirm("Are you sure you want to remove this product?");
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "products", id));
+
+      // ✅ UPDATE UI
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+
+      // ✅ UPDATE STATS
+      setStats((prev) => ({
+        ...prev,
+        products: prev.products - 1
+      }));
+
+    } catch (error) {
+      console.error("Error removing product:", error);
+    }
+  };
+
+  // 🔥 TOGGLE STOCK
   const toggleStock = async (id, currentStatus) => {
     try {
       const productRef = doc(db, "products", id);
 
       await updateDoc(productRef, {
         inStock: !currentStatus,
-        stock: !currentStatus ? 1 : 0 // if turning ON → default 1, OFF → 0
+        stock: !currentStatus ? 1 : 0
       });
 
       setProducts((prev) =>
@@ -94,7 +122,7 @@ function AdminDashboard() {
     }
   };
 
-  // 🔥 UPDATE STOCK (PCS)
+  // 🔥 UPDATE STOCK
   const updateStock = async (id, value) => {
     const newStock = Number(value);
 
@@ -123,7 +151,6 @@ function AdminDashboard() {
     }
   };
 
-  // AUTH CHECK
   if (!currentUser || !isAdmin) {
     return <Navigate to="/login" />;
   }
@@ -189,7 +216,7 @@ function AdminDashboard() {
 
               <p className="font-bold">₱{product.price}</p>
 
-              {/* ✅ STOCK INPUT */}
+              {/* STOCK */}
               <div>
                 <label className="text-xs text-gray-500">Stock (pcs)</label>
                 <input
@@ -216,7 +243,7 @@ function AdminDashboard() {
                   : "Out of Stock"}
               </span>
 
-              {/* TOGGLE BUTTON */}
+              {/* TOGGLE */}
               <button
                 onClick={() => toggleStock(product.id, product.inStock)}
                 className={`mt-2 py-2 rounded-lg text-sm font-semibold transition
@@ -227,6 +254,15 @@ function AdminDashboard() {
               >
                 {product.inStock ? "Mark Out of Stock" : "Mark In Stock"}
               </button>
+
+              {/* ✅ REMOVE BUTTON */}
+              <button
+                onClick={() => removeProduct(product.id)}
+                className="mt-2 py-2 rounded-lg text-sm font-semibold bg-gray-800 text-white hover:bg-black"
+              >
+                Remove
+              </button>
+
             </div>
           ))}
         </div>
