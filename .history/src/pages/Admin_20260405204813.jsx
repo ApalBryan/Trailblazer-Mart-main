@@ -7,30 +7,26 @@ import { useAuth } from "../contexts/AuthContext";
 
 function Admin() {
   const { currentUser, isAdmin } = useAuth();
-
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [price, setPrice] = useState("");
-  const [stock, setStock] = useState(""); 
-  const [imageUrl, setImageUrl] = useState("");
-  const [category, setCategory] = useState("Official University Merchandise");
+  const [imageUrl, setImageUrl] = useState(""); 
+  const [category, setCategory] = useState("Official University Merchandise"); // Default category
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Combined Validation
-    if (!brand || !model || !price || !imageUrl || !category || stock === "") {
+    if (!brand || !model || !price || !imageUrl || !category) {
       alert("All fields are required!");
       return;
     }
 
-    if (isNaN(Number(price)) || isNaN(Number(stock))) {
-      alert("Price and Stock must be numbers");
+    if (isNaN(Number(price))) {
+      alert("Price must be a number");
       return;
     }
 
-    const numericStock = Number(stock);
     setLoading(true);
 
     try {
@@ -38,26 +34,23 @@ function Admin() {
         brand,
         model,
         price: Number(price),
-        stock: numericStock,
-        inStock: numericStock > 0,
         image: imageUrl,
-        category,
+        category, // Saved to Firestore
         createdAt: serverTimestamp(),
       });
 
       alert("Product added successfully!");
 
-      // Reset Form
+      // Reset form
       setBrand("");
       setModel("");
       setPrice("");
-      setStock("");
       setImageUrl("");
       setCategory("Official University Merchandise");
 
     } catch (error) {
       console.error("Error adding product:", error);
-      alert("Error adding product. Check Firestore rules.");
+      alert("Error adding product.");
     } finally {
       setLoading(false);
     }
@@ -75,6 +68,7 @@ function Admin() {
         onSubmit={handleSubmit}
         className="max-w-md bg-white p-6 rounded shadow space-y-4"
       >
+        {/* CATEGORY DROPDOWN MOVED TO TOP */}
         <div className="flex flex-col gap-1">
           <label className="text-xs text-gray-400 font-bold uppercase ml-1">Select Category</label>
           <select
@@ -112,15 +106,6 @@ function Admin() {
         />
 
         <input
-          type="number"
-          placeholder="Stock (pcs)"
-          value={stock}
-          onChange={(e) => setStock(e.target.value)}
-          className="border p-2 w-full rounded"
-          min="0"
-        />
-
-        <input
           type="text"
           placeholder="Image URL"
           value={imageUrl}
@@ -137,15 +122,6 @@ function Admin() {
               className="w-32 h-32 object-cover rounded border"
             />
           </div>
-        )}
-
-        {stock !== "" && (
-          <p className="text-sm text-gray-600">
-            Status:{" "}
-            <span className={Number(stock) > 0 ? "text-green-600" : "text-red-600"}>
-              {Number(stock) > 0 ? "In Stock" : "Out of Stock"}
-            </span>
-          </p>
         )}
 
         <button

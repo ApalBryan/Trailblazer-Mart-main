@@ -7,62 +7,64 @@ import { useAuth } from "../contexts/AuthContext";
 
 function Admin() {
   const { currentUser, isAdmin } = useAuth();
-
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [price, setPrice] = useState("");
-  const [stock, setStock] = useState(""); 
-  const [imageUrl, setImageUrl] = useState("");
-  const [category, setCategory] = useState("Official University Merchandise");
+  const [imageUrl, setImageUrl] = useState(""); // URL input
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Combined Validation
-    if (!brand || !model || !price || !imageUrl || !category || stock === "") {
+    // Validation
+    if (!brand || !model || !price || !imageUrl) {
       alert("All fields are required!");
       return;
     }
 
-    if (isNaN(Number(price)) || isNaN(Number(stock))) {
-      alert("Price and Stock must be numbers");
+    if (isNaN(Number(price))) {
+      alert("Price must be a number");
       return;
     }
 
-    const numericStock = Number(stock);
     setLoading(true);
 
     try {
+      // Debug log to see what we’re submitting
+      console.log("Submitting product:", {
+        brand,
+        model,
+        price: Number(price),
+        image: imageUrl,
+        userId: currentUser.uid,
+      });
+
+      // Add product to Firestore
       await addDoc(collection(db, "products"), {
         brand,
         model,
         price: Number(price),
-        stock: numericStock,
-        inStock: numericStock > 0,
         image: imageUrl,
-        category,
         createdAt: serverTimestamp(),
       });
 
       alert("Product added successfully!");
 
-      // Reset Form
+      // Reset form
       setBrand("");
       setModel("");
       setPrice("");
-      setStock("");
       setImageUrl("");
-      setCategory("Official University Merchandise");
 
     } catch (error) {
       console.error("Error adding product:", error);
-      alert("Error adding product. Check Firestore rules.");
+      alert("Error adding product. Make sure your Firestore rules allow your user to write.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Optional: Admin check on render
   if (!currentUser || !isAdmin) {
     return <Navigate to="/login" />;
   }
@@ -75,18 +77,6 @@ function Admin() {
         onSubmit={handleSubmit}
         className="max-w-md bg-white p-6 rounded shadow space-y-4"
       >
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400 font-bold uppercase ml-1">Select Category</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="border p-2 w-full rounded bg-gray-50 font-semibold"
-          >
-            <option value="Official University Merchandise">Official University Merchandise</option>
-            <option value="Student Listings">Student Listings</option>
-          </select>
-        </div>
-
         <input
           type="text"
           placeholder="Brand"
@@ -112,15 +102,6 @@ function Admin() {
         />
 
         <input
-          type="number"
-          placeholder="Stock (pcs)"
-          value={stock}
-          onChange={(e) => setStock(e.target.value)}
-          className="border p-2 w-full rounded"
-          min="0"
-        />
-
-        <input
           type="text"
           placeholder="Image URL"
           value={imageUrl}
@@ -128,6 +109,7 @@ function Admin() {
           className="border p-2 w-full rounded"
         />
 
+        {/* Live preview */}
         {imageUrl && (
           <div className="mt-2">
             <p className="text-gray-500 text-sm">Preview:</p>
@@ -139,19 +121,10 @@ function Admin() {
           </div>
         )}
 
-        {stock !== "" && (
-          <p className="text-sm text-gray-600">
-            Status:{" "}
-            <span className={Number(stock) > 0 ? "text-green-600" : "text-red-600"}>
-              {Number(stock) > 0 ? "In Stock" : "Out of Stock"}
-            </span>
-          </p>
-        )}
-
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full font-bold"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           {loading ? "Adding..." : "Add Product"}
         </button>
